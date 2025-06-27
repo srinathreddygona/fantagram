@@ -14,10 +14,17 @@ export enum QUERY_KEYS {
     GET_RECENT_POSTS = "getRecentPosts",
     GET_POST_BY_ID = "getPostById",
     GET_USER_POSTS = "getUserPosts",
-    GET_FILE_PREVIEW = "getFilePreview",
+    GET_FILE_VIEW = "getFileView",
     
   
     //  SEARCH KEYS
     SEARCH_POSTS = "getSearchPosts",
+
+    // Follow functionality keys
+  GET_FOLLOW_STATUS= "getFollowStatus",
+  GET_FOLLOWERS_COUNT="getFollowersCount", 
+  GET_FOLLOWING_COUNT="getFollowingCount",
+  GET_FOLLOWERS= "getFollowers",
+  GET_FOLLOWING= "getFollowing",
   }
   

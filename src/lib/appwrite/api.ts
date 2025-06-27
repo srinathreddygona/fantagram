@@ -135,7 +135,7 @@ export async function createPost(post: INewPost) {
     if (!uploadedFile) throw Error;
 
     // Get file url
-    const fileUrl = getFilePreview(uploadedFile.$id);
+    const fileUrl = getFileView(uploadedFile.$id);
     if (!fileUrl) {
       await deleteFile(uploadedFile.$id);
       throw Error;
@@ -186,9 +186,9 @@ export async function uploadFile(file: File) {
 }
 
 // ============================== GET FILE URL
-export function getFilePreview(fileId: string) {
+export function getFileView(fileId: string) {
   try {
-    const fileUrl = storage.getFilePreview(
+    const fileUrl = storage.getFileView(
       appwriteConfig.storageId,
       fileId,
       2000,
@@ -290,7 +290,7 @@ export async function updatePost(post: IUpdatePost) {
       if (!uploadedFile) throw Error;
 
       // Get new file url
-      const fileUrl = getFilePreview(uploadedFile.$id);
+      const fileUrl = getFileView(uploadedFile.$id);
       if (!fileUrl) {
         await deleteFile(uploadedFile.$id);
         throw Error;
@@ -496,6 +496,160 @@ export async function getUserById(userId: string) {
   }
 }
 
+// ============================================================
+// FOLLOW FUNCTIONALITY
+// ============================================================
+
+// ============================== FOLLOW USER
+export async function followUser(followerId: string, followingId: string) {
+  try {
+    const followRecord = await databases.createDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.followsCollectionId,
+      ID.unique(),
+      {
+        follower: followerId,
+        following: followingId,
+      }
+    );
+
+    if (!followRecord) throw Error;
+
+    return followRecord;
+  } catch (error) {
+    console.log("Error following user:", error);
+    throw error;
+  }
+}
+
+// ============================== UNFOLLOW USER
+export async function unfollowUser(followerId: string, followingId: string) {
+  try {
+    // Find the follow record
+    const followRecords = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.followsCollectionId,
+      [
+        Query.equal("follower", followerId),
+        Query.equal("following", followingId),
+      ]
+    );
+
+    if (!followRecords.documents.length) {
+      throw new Error("Follow record not found");
+    }
+
+    // Delete the follow record
+    const deletedRecord = await databases.deleteDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.followsCollectionId,
+      followRecords.documents[0].$id
+    );
+
+    return deletedRecord;
+  } catch (error) {
+    console.log("Error unfollowing user:", error);
+    throw error;
+  }
+}
+
+// ============================== CHECK IF USER IS FOLLOWING
+export async function isFollowing(followerId: string, followingId: string) {
+  try {
+    const followRecords = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.followsCollectionId,
+      [
+        Query.equal("follower", followerId),
+        Query.equal("following", followingId),
+      ]
+    );
+
+    return followRecords.documents.length > 0;
+  } catch (error) {
+    console.log("Error checking follow status:", error);
+    return false;
+  }
+}
+
+// ============================== GET FOLLOWERS COUNT
+export async function getFollowersCount(userId: string) {
+  try {
+    const followers = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.followsCollectionId,
+      [Query.equal("following", userId)]
+    );
+
+    return followers.total;
+  } catch (error) {
+    console.log("Error getting followers count:", error);
+    return 0;
+  }
+}
+
+// ============================== GET FOLLOWING COUNT
+export async function getFollowingCount(userId: string) {
+  try {
+    const following = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.followsCollectionId,
+      [Query.equal("follower", userId)]
+    );
+
+    return following.total;
+  } catch (error) {
+    console.log("Error getting following count:", error);
+    return 0;
+  }
+}
+
+// ============================== GET FOLLOWERS LIST
+export async function getFollowers(userId: string) {
+  try {
+    const followers = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.followsCollectionId,
+      [Query.equal("following", userId)]
+    );
+
+    // Get user details for each follower
+    const followerUsers = await Promise.all(
+      followers.documents.map(async (follow) => {
+        return await getUserById(follow.follower);
+      })
+    );
+
+    return followerUsers;
+  } catch (error) {
+    console.log("Error getting followers:", error);
+    return [];
+  }
+}
+
+// ============================== GET FOLLOWING LIST
+export async function getFollowing(userId: string) {
+  try {
+    const following = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.followsCollectionId,
+      [Query.equal("follower", userId)]
+    );
+
+    // Get user details for each following
+    const followingUsers = await Promise.all(
+      following.documents.map(async (follow) => {
+        return await getUserById(follow.following);
+      })
+    );
+
+    return followingUsers;
+  } catch (error) {
+    console.log("Error getting following:", error);
+    return [];
+  }
+}
+
 // ============================== UPDATE USER
 export async function updateUser(user: IUpdateUser) {
   const hasFileToUpdate = user.file.length > 0;
@@ -511,7 +665,7 @@ export async function updateUser(user: IUpdateUser) {
       if (!uploadedFile) throw Error;
 
       // Get new file url
-      const fileUrl = getFilePreview(uploadedFile.$id);
+      const fileUrl = getFileView(uploadedFile.$id);
       if (!fileUrl) {
         await deleteFile(uploadedFile.$id);
         throw Error;
