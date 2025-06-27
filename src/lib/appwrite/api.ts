@@ -2,7 +2,7 @@ import { ID, Query } from "appwrite";
 
 import { appwriteConfig, account, databases, storage, avatars } from "./config";
 import { IUpdatePost, INewPost, INewUser, IUpdateUser } from "@/types";
-import { string } from "zod";
+//import { string } from "zod";
 
 // ============================================================
 // AUTH
@@ -191,8 +191,7 @@ export function getFileView(fileId: string) {
     const fileUrl = storage.getFileView(
       appwriteConfig.storageId,
       fileId,
-      2000,
-      2000,
+      
     //   "top",
     //   100
     );
